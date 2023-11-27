@@ -5,10 +5,11 @@ Load data from elastic database, and apply machine learning on it
 """
 
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-
+import api  # api for es
 
 import os
 import glob
@@ -22,22 +23,17 @@ HOST="localhost"
 PATH="/opt/data/TRAIN_ENSIBS/"
 
 
-def get_data(host):
+def get_data():
     #  get database
-    es = Elasticsearch([{'host': host, 'scheme' : 'http', 'port': 9200}])
+    data = api.get_all_data()
+    final_data = []
+    for i in range(len(data)):
+        final_data += data[i]['hits']['hits']
+    for i in range(len(final_data)):
+        final_data[i] = final_data[i]['_source']
+    return pd.DataFrame(final_data)
 
-    query = {
-            "query": {
-                "match": {
-                    "database": "i"
-                    }
-                }
-            }
-    
-    #  todo
-    pass
-
-
+#  unused now
 def fake_get_data(path):
     for p in glob.glob(os.path.join(path, "*")):
         yield p, pd.read_xml(p)
@@ -53,22 +49,22 @@ def preprocess_data(data):
     #  encode tag
     data["Tag"] = data.apply(lambda x: encode_tag(x["Tag"]), axis=1)
 
-    #  encode appName
-    data["appName"] = LabelEncoder().fit_transform(data["appName"])
+    #  Label encoding
+    for v in ["appName", "protocolName", "sourcePort"]:
+        data[v] = LabelEncoder().fit_transform(data[v])
 
-    #breakpoint()
-    print("3 cols encoded : ")
-    print("duration : ", data["duration"])
-    print("tag : ", data["Tag"])
-    print("appName : ", data["appName"])
-    print("Others cols not encoded yet")
-    breakpoint()
-
-    #  encode 
+    #  scale numerical variables
     scaler = MinMaxScaler()
-    data["totalSourceBytes"] = scaler.fit_transform(data["totalSourceBytes"])
 
-    
+    for v in ["totalSourceBytes", "totalDestinationBytes", "totalDestinationPackets", "duration", "Tag", "protocolName", "destinationPort", "sourcePort"]:
+        data[v] = scaler.fit_transform(np.array(data[v]).reshape(-1, 1))
+
+    features = data[["totalSourceBytes", "totalDestinationBytes", "totalDestinationPackets", "protocolName", "sourcePort", "destinationPort", "Tag", "duration"]]
+    print("\n" * 30)
+    print("features are stored in the features object")
+    print("you can print the dataframe with print(features)")
+    print("\n" * 5)
+    breakpoint()
     pass
 
 
@@ -112,15 +108,13 @@ def main():
     """
     df_data = get_data(HOST)
     """
-
-    #  just for the moment
-    for p, dataset in fake_get_data(PATH):
-        print("file : ", p)
-        df_data_preprocessed = preprocess_data(dataset)
     
-        df_final = apply_ids(df_data_preprocessed)
+    dataset = get_data()
+
+    df_data_preprocessed = preprocess_data(dataset)
+    
+    df_final = apply_ids(df_data_preprocessed)
         
-        breakpoint()
 
 
 

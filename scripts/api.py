@@ -29,10 +29,10 @@ def get_protocol_flows(protocol: str) -> list:
     results = []
     for index in indices:
         search_query = {
-            "match": {
-                'protocolName': protocol
-            }
-        }
+                "match": {
+                    'protocolName': protocol
+                    }
+                }
         result = es.search(index=index, query=search_query)
         results.append(result)
 
@@ -49,10 +49,10 @@ def get_protocols_flows_count() -> dict:
         counts[protocol] = 0
         for index in indices:
             search_query = {
-                'match': {
-                    'protocolName': protocol
-                }
-            }
+                    'match': {
+                        'protocolName': protocol
+                        }
+                    }
             result = es.count(index=index, query=search_query)
             counts[protocol] += result['count']
     return counts
@@ -68,22 +68,22 @@ def get_protocols_total_bytes() -> dict:
         total_bytes[protocol] = {'source': 0, 'destination': 0}
         for index in indices:
             query = {
-                'term': {
-                    'protocolName': protocol
-                }
-            }
+                    'term': {
+                        'protocolName': protocol
+                        }
+                    }
             aggregation_query = {
-                'total_sum_source': {
-                    'sum': {
-                        'field': 'totalSourceBytes'
+                    'total_sum_source': {
+                        'sum': {
+                            'field': 'totalSourceBytes'
+                            }
+                        },
+                    'total_sum_destination': {
+                        'sum': {
+                            'field': 'totalDestinationBytes'
+                            }
+                        }
                     }
-                },
-                'total_sum_destination': {
-                    'sum': {
-                        'field': 'totalDestinationBytes'
-                    }
-                }
-            }
             result = es.search(index=index, query=query, aggs=aggregation_query)
             total_bytes[protocol]['source'] += result['aggregations']['total_sum_source']['value']
             total_bytes[protocol]['destination'] += result['aggregations']['total_sum_destination']['value']
@@ -101,22 +101,22 @@ def get_protocols_total_packets() -> dict:
         total_packets[protocol] = {'source': 0, 'destination': 0}
         for index in indices:
             query = {
-                'term': {
-                    'protocolName': protocol
-                }
-            }
+                    'term': {
+                        'protocolName': protocol
+                        }
+                    }
             aggregation_query = {
-                'total_sum_source': {
-                    'sum': {
-                        'field': 'totalSourceBytes'
+                    'total_sum_source': {
+                        'sum': {
+                            'field': 'totalSourceBytes'
+                            }
+                        },
+                    'total_sum_destination': {
+                        'sum': {
+                            'field': 'totalDestinationBytes'
+                            }
+                        }
                     }
-                },
-                'total_sum_destination': {
-                    'sum': {
-                        'field': 'totalDestinationBytes'
-                    }
-                }
-            }
             result = es.search(index=index, query=query, aggs=aggregation_query)
             total_packets[protocol]['source'] += result['aggregations']['total_sum_source']['value']
             total_packets[protocol]['destination'] += result['aggregations']['total_sum_destination']['value']
@@ -143,14 +143,31 @@ def get_app_flows(app: str) -> list:
     results = []
     for index in indices:
         search_query = {
-            "match": {
-                'appName': app
-            }
-        }
+                "match": {
+                    'appName': app
+                    }
+                }
         result = es.search(index=index, query=search_query)
         results.append(result)
 
     return results
+
+
+def get_all_data() -> dict:
+    apps = get_apps()
+    indices = get_indices()
+    results = []
+    for app in apps:
+        for index in indices:
+            search_query = {
+                "match": {
+                    'appName': app
+                }
+            }
+            result = es.search(index=index, query=search_query)
+            results.append(result)
+    return results
+
 
 def get_apps_flows_count() -> dict:
     '''
