@@ -107,6 +107,10 @@ SENDING THE DATA
             flow=child.attrib
             for att in child:
                 flow[att.tag]=att.text
+            flow['totalSourceBytes']=int(flow['totalSourceBytes'])
+            flow['totalDestinationBytes']=int(flow['totalDestinationBytes'])
+            flow['totalDestinationPackets']=int(flow['totalDestinationPackets'])
+            flow['totalSourcePackets']=int(flow['totalSourcePackets'])
             
             op_dict = {
                 "index": {
