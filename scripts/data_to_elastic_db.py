@@ -1,10 +1,7 @@
-from lxml import etree
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
+import xml.etree.ElementTree as ET
 import os
 import glob
-import pandas as pd
-import re, string
-from math import isnan
 import socket
 
 
@@ -17,15 +14,32 @@ def claim_datasets(path):
     for p in paths:
         yield p, pd.read_xml(p)
 
-        
+ind = 'iscx'
+bulk=''
+bulk_size=0
+    
+def send_bulk():
+    global bulk
+    global bulk_size
+    headers = '''Content-Type: application/json
+Content-Length: {}
+'''.format(len(bulk))
+
+    req = '\n'.join(['POST _bulk?pretty HTTP/1.1',
+                                                headers,
+                                                bulk]).encode()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("localhost", 9200))
+    sock.send(req)
+    #print(req.decode())
+    print(sock.recv(1024).decode())
+    bulk=''
+    bulk_size=0
 
 def main():
+    global bulk
+    global bulk_size
 
-    #  init elasticsearch obj
-    es = Elasticsearch([{'host': 'localhost',
-                         'port': 9200,
-                         'scheme': "http"}])
-    
     print('''
 ~~~~~~~~~~~~~~~~~~~~~~
 REMOVING EXISTING DATA
@@ -35,13 +49,14 @@ REMOVING EXISTING DATA
     sock.connect(("localhost", 9200))
     sock.send(b'DELETE _all?pretty HTTP/1.1\r\n\r\n')
     print(sock.recv(1024).decode())
-
-    #  claim dataset in pandas format
-    for p, dataset in claim_datasets(DATA_PATH):
-        ind = p[len(p) - p[::-1].find("/") : - 4]
-        ind = re.sub(r'\W+', '', ind).lower()
-
-        payload='''{
+    
+    print('''
+~~~~~~~~~~~~~~
+CREATING INDEX
+~~~~~~~~~~~~~~
+''')
+    
+    payload='''{
     "mappings": {
         "properties": {
             "protocolName": {
@@ -54,25 +69,60 @@ REMOVING EXISTING DATA
     }
 }'''
 
-        headers = '''Content-Type: application/json
+    headers = '''Content-Type: application/json
 Content-Length: {}
 '''.format(len(payload))
 
-        req = '\n'.join(['PUT {}?pretty HTTP/1.1'.format(ind),
+    req = '\n'.join(['PUT {}?pretty HTTP/1.1'.format(ind),
                          headers,
                          payload]).encode()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("localhost", 9200))
-        sock.send(req)
-        print(req.decode())
-        print(sock.recv(1024).decode())
-        for index, row in dataset.iterrows():
-            document = row.to_dict()
-            for key in document:
-                value=document[key]
-                if type(value)==float and isnan(document[key]):
-                    document[key]='NULL'
-            es.index(index=ind, document=document,id=index)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(("localhost", 9200))
+    sock.send(req)
+    print(sock.recv(1024).decode())
+
+    print('''
+~~~~~~~~~~~~~~~~
+SENDING THE DATA
+~~~~~~~~~~~~~~~~
+''')
+
+    #  init elasticsearch obj
+    es = Elasticsearch([{'host': 'localhost',
+                         'port': 9200,
+                         'scheme': "http"}])
+   
+    i=0
+    max_bulk_size=1000
+    bulk_data=[]
+    paths = glob.glob(os.path.join(DATA_PATH, "*"))
+    for p in paths:
+        #dataset = pd.read_xml(p)
+        print(p)
+        tree = ET.parse(p)
+        root = tree.getroot()
+        #for index, row in dataset.iterrows():
+        for child in root:
+            #flow = row.to_dict()
+            flow=child.attrib
+            for att in child:
+                flow[att.tag]=att.text
+            
+            op_dict = {
+                "index": {
+                    "_index": ind,
+                    "_id": i
+                }
+            }
+
+            bulk_data.append(op_dict)
+            bulk_data.append(flow)
+            i+=1
+
+            if len(bulk_data)>max_bulk_size:
+                es.bulk(operations=bulk_data)
+                bulk_data=[]
+        es.bulk(operations=bulk_data)
 
 if __name__ == "__main__":
     main()
