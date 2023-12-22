@@ -111,7 +111,7 @@ SENDING THE DATA
             flow['totalDestinationBytes']=int(flow['totalDestinationBytes'])
             flow['totalDestinationPackets']=int(flow['totalDestinationPackets'])
             flow['totalSourcePackets']=int(flow['totalSourcePackets'])
-            
+
             op_dict = {
                 "index": {
                     "_index": ind,
