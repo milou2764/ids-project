@@ -5,7 +5,7 @@ import glob
 import socket
 
 
-DATA_PATH = "/opt/data/TRAIN_ENSIBS/"
+DATA_PATH = os.getenv('HOME')+'/ids-martinmilou/TRAIN_ENSIBS/'
 
 def claim_datasets(path):
     
