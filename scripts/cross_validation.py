@@ -20,14 +20,14 @@ def extract_ground_truth(data):
 
 def cross_validate_models(X, y):
     '''
-    cross validate models with kfold = 5 on each model in the 'models' variable
+    cross validate models with kfold = 5 and return the metrics
     '''
     
     models = {
-            'KNN': KNeighborsClassifier(n_neighbors=3),
+            'KNN': KNeighborsClassifier(),
             'GaussianNB': GaussianNB(),
-            'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),
-            'MLP': MLPClassifier(hidden_layer_sizes=(100,), max_iter=1000, random_state=42)
+            'RandomForest': RandomForestClassifier(),
+            'MLP': MLPClassifier(max_iter=1000)
     }
 
     results = {}
@@ -50,21 +50,40 @@ def cross_validate_models(X, y):
 
         #  perform cross-validation
         cv_results = cross_validate(model, X, y, cv=kf, scoring=scoring)
+
+        results[model] = cv_results
+
         #  print or log the cross-validation results
         for metric, values in cv_results.items():
             print(f'{metric.capitalize()} (mean): {values.mean()}')
-            print(f'{metric.capitalize()} (std): {values.std()}')    
+            print(f'{metric.capitalize()} (std): {values.std()}')
+
+    return results
+
+def select_best_model(models_results):
+    best=(None,0)
+    for modelname,cv_results in models_results.items():
+        mean_accuracy=cv_results['test_accuracy'].mean()
+        if mean_accuracy>best[1]:
+            best=(modelname,mean_accuracy)
+    return best
+
+def get_best_model(app):
+    '''
+    performs cross validation over several models and return the one with the best accuracy
+    '''
+    flows = get_app_flows(app)
+    flows = preprocess_data(flows)
+    X, y = extract_ground_truth(flows)
+
+    results = cross_validate_models(X, y)
+    best_model=select_best_model(results)
+    print('The best model is',best_model[0],'with an average accuracy of',best_model[1])
+    return best_model[0], X, y 
 
 def main():
-    #  get data
-    ssh_flows = get_app_flows('SSH')
-    
-    #  preprocess data
-    ssh_flows = preprocess_data(ssh_flows)
-
-    X, y = extract_ground_truth(ssh_flows)
-
-    cross_validate_models(X, y)
+    print('example with SSH app flows')
+    get_best_model('SSH')
 
 if __name__ == "__main__":
     main()

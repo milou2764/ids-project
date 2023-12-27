@@ -1,9 +1,9 @@
 from elasticsearch import Elasticsearch
-import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import parse
+from utils import element_to_dict
 import os
 import glob
 import socket
-
 
 DATA_PATH = os.getenv('HOME')+'/ids-martinmilou/TRAIN_ENSIBS/'
 
@@ -97,20 +97,11 @@ SENDING THE DATA
     bulk_data=[]
     paths = glob.glob(os.path.join(DATA_PATH, "*"))
     for p in paths:
-        #dataset = pd.read_xml(p)
         print(p)
-        tree = ET.parse(p)
+        tree = parse(p)
         root = tree.getroot()
-        #for index, row in dataset.iterrows():
         for child in root:
-            #flow = row.to_dict()
-            flow=child.attrib
-            for att in child:
-                flow[att.tag]=att.text
-            flow['totalSourceBytes']=int(flow['totalSourceBytes'])
-            flow['totalDestinationBytes']=int(flow['totalDestinationBytes'])
-            flow['totalDestinationPackets']=int(flow['totalDestinationPackets'])
-            flow['totalSourcePackets']=int(flow['totalSourcePackets'])
+            flow = element_to_dict(child)
 
             op_dict = {
                 "index": {
@@ -130,24 +121,3 @@ SENDING THE DATA
 
 if __name__ == "__main__":
     main()
-
-"""
-
-BACKUP
-
-"""
-
-def etree_to_dict(t):
-    d = {t.tag : map(etree_to_dict, t.iterchildren())}
-    d.update(('@' + k, v) for k, v in t.attrib.iteritems())
-    d['text'] = t.text
-    return d
-
-
-def get_big_dictionnary(i: int) -> dict:
-    tree = etree.parse(datasets[i])
-    root = tree.getroot()
-    d = etree_to_dict(root)
-    return d
-
-
