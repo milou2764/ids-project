@@ -3,13 +3,11 @@ from dataclasses import dataclass
 from sklearn.preprocessing import LabelEncoder
 from numpy import argmax
 import json
-from argparse import ArgumentParser
 from pandas import DataFrame
 from sklearn.ensemble import RandomForestClassifier
 
 from checkResultFile import checkResultFile
-
-from cross_validation import get_best_model
+from utils import get_project_path
 
 def convert_to_integer(value):
     multipliers = {'k': 1000, 'M': 1000000, 'G': 1000000000}  # Define multipliers for K, M, B, G
@@ -92,20 +90,15 @@ def get_model(train_fp):
     return model
 
 if __name__=='__main__':
-    parser = ArgumentParser(
-            prog='Challenge 2',
-            description='Takes the given train and test files and return the predictions over the test file',
-            epilog='Authors: Martin Bazire and Émilien André')
-    parser.add_argument('train_fp',help='train filepath')
-    parser.add_argument('test_fp',help='test filepath')
-    
-    args=parser.parse_args()
+    project_path = get_project_path()
+    train_fp = project_path+'data/traffic_os_TRAIN.xml'
+    test_fp = project_path+'data/traffic_os_TEST.xml'
 
-    model = get_model(args.train_fp)
+    model = get_model(train_fp)
     
     # Test model
     print('parsing test data')
-    X_test,_ = parse_data(args.test_fp)
+    X_test,_ = parse_data(test_fp)
     print('preprocessing test data')
     X_test = preprocess_data(X_test)
     print('predicting test data')

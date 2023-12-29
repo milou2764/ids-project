@@ -1,5 +1,6 @@
 from api import get_app_flows
 from preprocessor import preprocess_data
+import os
 
 def element_to_dict(child):
     flow={}
@@ -35,3 +36,6 @@ def get_training_data(app):
     flows = preprocess_data(flows)
     X, y = extract_ground_truth(flows)
     return X,y
+
+def get_project_dir():
+    return os.path.dirname(os.path.abspath(__file__))+'/../'

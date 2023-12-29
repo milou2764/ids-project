@@ -5,7 +5,9 @@ import os
 import glob
 import socket
 
-DATA_PATH = os.getenv('HOME')+'/ids-martinmilou/TRAIN_ENSIBS/'
+from utils import get_project_dir
+
+DATA_PATH = get_project_dir()+'/data/TRAIN_ENSIBS/'
 
 def claim_datasets(path):
     
@@ -15,40 +17,18 @@ def claim_datasets(path):
         yield p, pd.read_xml(p)
 
 ind = 'iscx'
-bulk=''
-bulk_size=0
     
-def send_bulk():
-    global bulk
-    global bulk_size
-    headers = '''Content-Type: application/json
-Content-Length: {}
-'''.format(len(bulk))
-
-    req = '\n'.join(['POST _bulk?pretty HTTP/1.1',
-                                                headers,
-                                                bulk]).encode()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("localhost", 9200))
-    sock.send(req)
-    #print(req.decode())
-    print(sock.recv(1024).decode())
-    bulk=''
-    bulk_size=0
-
 def main():
-    global bulk
-    global bulk_size
-
     print('''
-~~~~~~~~~~~~~~~~~~~~~~
-REMOVING EXISTING DATA
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+REMOVING EXISTING INDEX
+~~~~~~~~~~~~~~~~~~~~~~~
 ''')
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("localhost", 9200))
-    sock.send(b'DELETE _all?pretty HTTP/1.1\r\n\r\n')
-    print(sock.recv(1024).decode())
+    es = Elasticsearch([{'host': 'localhost',
+                         'port': 9200,
+                         'scheme': "http"}])
+ 
+    es.options(ignore_status=[400,404]).indices.delete(index='test-index')
     
     print('''
 ~~~~~~~~~~~~~~
@@ -86,13 +66,9 @@ Content-Length: {}
 SENDING THE DATA
 ~~~~~~~~~~~~~~~~
 ''')
-
-    #  init elasticsearch obj
-    es = Elasticsearch([{'host': 'localhost',
-                         'port': 9200,
-                         'scheme': "http"}])
-   
     i=0
+    bulk=''
+    bulk_size=0
     max_bulk_size=1000
     bulk_data=[]
     paths = glob.glob(os.path.join(DATA_PATH, "*"))
