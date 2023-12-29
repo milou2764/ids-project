@@ -4,7 +4,7 @@ import glob, os, sys, ast
 
 from matplotlib.backends.backend_pdf import PdfPages
 
-LABS = ['Normal','Attack']
+LABS = ['Normal','Attack','normal','attacker','victim']
 
 NB_SSH = 2944
 NB_HTTPWeb = 234232

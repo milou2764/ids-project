@@ -1,5 +1,4 @@
-from api import get_app_flows
-from preprocessor import preprocess_data
+from utils import get_training_data, extract_ground_truth
 
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
@@ -9,14 +8,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.metrics import make_scorer, accuracy_score, precision_score, recall_score, f1_score
 
-
-def extract_ground_truth(data):
-    '''
-    Extract the ground truth from the dataset
-    '''
-    X = data.drop("Tag", axis=1)
-    y = data["Tag"]
-    return X, y
 
 def cross_validate_models(X, y):
     '''
@@ -68,22 +59,19 @@ def select_best_model(models_results):
             best=(modelname,mean_accuracy)
     return best
 
-def get_best_model(app):
+def get_best_model(X,y):
     '''
     performs cross validation over several models and return the one with the best accuracy
     '''
-    flows = get_app_flows(app)
-    flows = preprocess_data(flows)
-    X, y = extract_ground_truth(flows)
-
     results = cross_validate_models(X, y)
-    best_model=select_best_model(results)
+    best_model = select_best_model(results)
     print('The best model is',best_model[0],'with an average accuracy of',best_model[1])
-    return best_model[0], X, y 
+    return best_model[0]
 
 def main():
     print('example with SSH app flows')
-    get_best_model('SSH')
+    X,y = get_training_data('SSH')
+    get_best_model(X,y)
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,6 @@
-from api import get_app_flows
 from preprocessor import preprocess_data
 from cross_validation import get_best_model
-from utils import extract_ground_truth, element_to_dict
+from utils import extract_ground_truth, element_to_dict, get_training_data
 
 from checkResultFile import checkResultFile
 
@@ -31,10 +30,11 @@ def select_and_train(app,modelpath):
     Select with cross validation, train and saves a classifier
     '''
     print('cross validating models')
-    model,X_train,y_train = get_best_model(app)
+    X,y = get_training_data(app)
+    model = get_best_model(X,y)
 
     print('training selected model')
-    model.fit(X_train,y_train)
+    model.fit(X,y)
     dump(model,modelpath)
     
     return model
