@@ -7,7 +7,7 @@ from pandas import DataFrame
 from sklearn.ensemble import RandomForestClassifier
 
 from checkResultFile import checkResultFile
-from utils import get_project_path
+from utils import get_project_dir
 
 def convert_to_integer(value):
     multipliers = {'k': 1000, 'M': 1000000, 'G': 1000000000}  # Define multipliers for K, M, B, G
@@ -89,11 +89,14 @@ def get_model(train_fp):
     model.fit(X,y)
     return model
 
-if __name__=='__main__':
-    project_path = get_project_path()
+def get_train_test_fp():
+    project_path = get_project_dir()
     train_fp = project_path+'data/traffic_os_TRAIN.xml'
     test_fp = project_path+'data/traffic_os_TEST.xml'
+    return train_fp,test_fp
 
+if __name__=='__main__':
+    train_fp,test_fp = get_train_test_fp()
     model = get_model(train_fp)
     
     # Test model
